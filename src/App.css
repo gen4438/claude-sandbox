@@ -1,0 +1,68 @@
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.App {
+  width: 100%;
+}
+
+.App-header {
+  margin-bottom: 2rem;
+}
+
+.App-header h1 {
+  margin-bottom: 0.5rem;
+  background: linear-gradient(90deg, #646cff, #535bf2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.App-header p {
+  font-size: 1.2em;
+  color: #888;
+}
+
+.App-main {
+  margin-top: 2rem;
+}
+
+.card {
+  padding: 2em;
+}
+
+.card button {
+  font-size: 1.2em;
+  padding: 0.8em 1.5em;
+}
+
+.description {
+  margin-top: 2rem;
+  padding: 1em;
+  background-color: rgba(100, 108, 255, 0.1);
+  border-radius: 8px;
+}
+
+.description p {
+  margin: 0.5em 0;
+}
+
+.description code {
+  background-color: rgba(100, 108, 255, 0.2);
+  padding: 0.2em 0.4em;
+  border-radius: 4px;
+  font-family: monospace;
+}
+
+@media (prefers-color-scheme: light) {
+  .description {
+    background-color: rgba(100, 108, 255, 0.05);
+  }
+  
+  .description code {
+    background-color: rgba(100, 108, 255, 0.1);
+  }
+}
