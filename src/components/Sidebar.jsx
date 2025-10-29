@@ -1,6 +1,6 @@
-import { HomeIcon, ChartBarIcon, UsersIcon, Cog6ToothIcon } from '@heroicons/react/24/outline'
+import { HomeIcon, ChartBarIcon, UsersIcon, Cog6ToothIcon, XMarkIcon } from '@heroicons/react/24/outline'
 
-function Sidebar({ isOpen }) {
+function Sidebar({ isOpen, isMobile, onClose }) {
   const menuItems = [
     { icon: HomeIcon, label: 'ホーム', active: true },
     { icon: ChartBarIcon, label: '分析', active: false },
@@ -10,16 +10,32 @@ function Sidebar({ isOpen }) {
 
   return (
     <aside
-      className={`${
-        isOpen ? 'w-64' : 'w-0'
-      } bg-base-100 shadow-xl transition-all duration-300 overflow-hidden`}
+      className={`
+        ${isMobile ? 'fixed left-0 top-0 h-full z-50' : 'relative'}
+        ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+        ${isMobile ? '' : 'lg:translate-x-0'}
+        w-64 bg-base-100 shadow-xl transition-transform duration-300 ease-in-out
+      `}
     >
+      <div className="flex items-center justify-between p-4 lg:hidden border-b border-base-300">
+        <h2 className="text-lg font-bold">メニュー</h2>
+        <button
+          onClick={onClose}
+          className="btn btn-ghost btn-sm btn-circle"
+          aria-label="メニューを閉じる"
+        >
+          <XMarkIcon className="w-5 h-5" />
+        </button>
+      </div>
       <ul className="menu p-4 space-y-2">
         {menuItems.map((item, index) => {
           const Icon = item.icon
           return (
             <li key={index}>
-              <a className={item.active ? 'active' : ''}>
+              <a
+                className={item.active ? 'active' : ''}
+                onClick={isMobile ? onClose : undefined}
+              >
                 <Icon className="w-5 h-5" />
                 {item.label}
               </a>

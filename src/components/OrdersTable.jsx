@@ -44,28 +44,30 @@ function OrdersTable() {
 
   return (
     <div className="card bg-base-100 shadow-xl">
-      <div className="card-body">
-        <h2 className="card-title">最近の注文</h2>
-        <div className="overflow-x-auto">
-          <table className="table">
+      <div className="card-body p-3 sm:p-4 md:p-6">
+        <h2 className="card-title text-base sm:text-lg md:text-xl">最近の注文</h2>
+        <div className="overflow-x-auto -mx-3 sm:-mx-4 md:-mx-6 px-3 sm:px-4 md:px-6">
+          <table className="table table-xs sm:table-sm md:table-md">
             <thead>
               <tr>
-                <th>注文ID</th>
-                <th>顧客名</th>
-                <th>商品</th>
-                <th>金額</th>
-                <th>ステータス</th>
+                <th className="text-xs sm:text-sm">注文ID</th>
+                <th className="text-xs sm:text-sm">顧客名</th>
+                <th className="text-xs sm:text-sm">商品</th>
+                <th className="text-xs sm:text-sm">金額</th>
+                <th className="text-xs sm:text-sm">ステータス</th>
               </tr>
             </thead>
             <tbody>
               {orders.map((order, index) => (
                 <tr key={index} className="hover">
-                  <td>{order.id}</td>
-                  <td>{order.customer}</td>
-                  <td>{order.product}</td>
-                  <td>{order.amount}</td>
+                  <td className="text-xs sm:text-sm font-mono">{order.id}</td>
+                  <td className="text-xs sm:text-sm">{order.customer}</td>
+                  <td className="text-xs sm:text-sm max-w-[120px] sm:max-w-none truncate">{order.product}</td>
+                  <td className="text-xs sm:text-sm font-semibold">{order.amount}</td>
                   <td>
-                    <span className={`badge ${order.statusColor}`}>{order.status}</span>
+                    <span className={`badge badge-xs sm:badge-sm ${order.statusColor} text-xs`}>
+                      {order.status}
+                    </span>
                   </td>
                 </tr>
               ))}
