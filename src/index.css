@@ -1,4 +1,6 @@
 @import "tailwindcss";
 
+@plugin "daisyui";
+
 /* ダークモード設定: classベース */
 @variant dark (&:where(.dark, .dark *));
