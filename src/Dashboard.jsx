@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { UsersIcon, CurrencyDollarIcon, ShoppingBagIcon, EyeIcon } from '@heroicons/react/24/outline'
 import Header from './components/Header'
 import Sidebar from './components/Sidebar'
@@ -8,7 +8,22 @@ import CategoryChart from './components/CategoryChart'
 import OrdersTable from './components/OrdersTable'
 
 function Dashboard() {
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 1024
+      setIsMobile(mobile)
+      if (!mobile && !sidebarOpen) {
+        setSidebarOpen(true)
+      }
+    }
+
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   const stats = [
     {
@@ -45,12 +60,20 @@ function Dashboard() {
     <div className="min-h-screen bg-base-200">
       <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
 
-      <div className="flex">
-        <Sidebar isOpen={sidebarOpen} />
+      <div className="flex relative">
+        {/* Overlay for mobile */}
+        {isMobile && sidebarOpen && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
 
-        <main className="flex-1 p-6">
+        <Sidebar isOpen={sidebarOpen} isMobile={isMobile} onClose={() => setSidebarOpen(false)} />
+
+        <main className="flex-1 p-3 sm:p-4 md:p-6 w-full">
           {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-3 sm:mb-4 md:mb-6">
             {stats.map((stat, index) => (
               <StatCard
                 key={index}
@@ -64,7 +87,7 @@ function Dashboard() {
           </div>
 
           {/* Chart Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 md:gap-6 mb-3 sm:mb-4 md:mb-6">
             <SalesChart />
             <CategoryChart />
           </div>

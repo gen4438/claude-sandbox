@@ -8,17 +8,17 @@ function CategoryChart() {
 
   return (
     <div className="card bg-base-100 shadow-xl">
-      <div className="card-body">
-        <h2 className="card-title">カテゴリー別売上</h2>
-        <div className="space-y-4">
+      <div className="card-body p-3 sm:p-4 md:p-6">
+        <h2 className="card-title text-base sm:text-lg md:text-xl">カテゴリー別売上</h2>
+        <div className="space-y-3 sm:space-y-4">
           {categories.map((category, index) => (
             <div key={index}>
-              <div className="flex justify-between text-sm mb-1">
-                <span>{category.name}</span>
-                <span className="font-semibold">{category.percentage}%</span>
+              <div className="flex justify-between text-xs sm:text-sm mb-1">
+                <span className="truncate mr-2">{category.name}</span>
+                <span className="font-semibold flex-shrink-0">{category.percentage}%</span>
               </div>
               <progress
-                className={`progress ${category.color}`}
+                className={`progress ${category.color} h-2 sm:h-3`}
                 value={category.percentage}
                 max="100"
               ></progress>
