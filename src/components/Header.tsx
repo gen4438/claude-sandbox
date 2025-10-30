@@ -1,7 +1,11 @@
 import { Bars3Icon, BellIcon } from '@heroicons/react/24/outline'
 import ThemeToggle from '../ThemeToggle'
 
-function Header({ onMenuClick }) {
+interface HeaderProps {
+  onMenuClick: () => void
+}
+
+function Header({ onMenuClick }: HeaderProps) {
   return (
     <div className="navbar bg-base-100 shadow-lg px-2 sm:px-4 min-h-[60px]">
       <div className="flex-none">

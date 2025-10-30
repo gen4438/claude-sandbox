@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { MoonIcon, SunIcon } from '@heroicons/react/24/outline'
 
+type Theme = 'light' | 'dark'
+
 const ThemeToggle = () => {
-  const [theme, setTheme] = useState(() => {
+  const [theme, setTheme] = useState<Theme>(() => {
     // 初期テーマを取得: localStorage > システム設定 > ライト
-    const savedTheme = localStorage.getItem('theme')
+    const savedTheme = localStorage.getItem('theme') as Theme | null
     if (savedTheme) return savedTheme
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
   })
