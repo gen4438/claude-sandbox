@@ -5,7 +5,8 @@ import {
   Cog6ToothIcon,
   DocumentTextIcon,
   CubeIcon,
-  ShoppingBagIcon
+  ShoppingBagIcon,
+  QrCodeIcon
 } from '@heroicons/react/24/outline'
 import { ForwardRefExoticComponent, SVGProps } from 'react'
 import Header from '../components/Header'
@@ -44,6 +45,13 @@ function Landing() {
       description: '売上、ユーザー、注文などの統計情報を確認',
       icon: ChartBarIcon,
       path: '/dashboard',
+      color: 'text-primary',
+    },
+    {
+      title: 'QRコードジェネレーター',
+      description: 'テキストからQRコードを生成',
+      icon: QrCodeIcon,
+      path: '/qr-generator',
       color: 'text-primary',
     },
     {
