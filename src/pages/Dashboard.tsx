@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { UsersIcon, CurrencyDollarIcon, ShoppingBagIcon, EyeIcon } from '@heroicons/react/24/outline'
+import { UsersIcon, CurrencyDollarIcon, ShoppingBagIcon, EyeIcon, ChartBarIcon } from '@heroicons/react/24/outline'
 import { ForwardRefExoticComponent, SVGProps } from 'react'
 import Header from '../components/Header'
 import Sidebar from '../components/Sidebar'
@@ -7,6 +7,7 @@ import StatCard from '../components/StatCard'
 import SalesChart from '../components/SalesChart'
 import CategoryChart from '../components/CategoryChart'
 import OrdersTable from '../components/OrdersTable'
+import { PageMetadata } from '../pageRegistry'
 
 interface Stat {
   icon: ForwardRefExoticComponent<SVGProps<SVGSVGElement>>
@@ -107,6 +108,15 @@ function Dashboard() {
       </div>
     </div>
   )
+}
+
+// ページメタデータのエクスポート
+export const metadata: PageMetadata = {
+  title: 'ダッシュボード',
+  description: '売上、ユーザー、注文などの統計情報を確認',
+  icon: ChartBarIcon,
+  path: '/dashboard',
+  color: 'text-primary',
 }
 
 export default Dashboard
