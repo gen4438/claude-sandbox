@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import Landing from './pages/Landing'
 import Dashboard from './pages/Dashboard'
+import QRGenerator from './pages/QRGenerator'
 
 function App() {
   return (
@@ -8,6 +9,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/qr-generator" element={<QRGenerator />} />
         {/* Placeholder routes for other pages */}
         <Route path="/users" element={<div className="p-8 text-center text-2xl">ユーザー管理ページ（準備中）</div>} />
         <Route path="/products" element={<div className="p-8 text-center text-2xl">商品管理ページ（準備中）</div>} />
