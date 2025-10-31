@@ -1,5 +1,11 @@
+interface Category {
+  name: string
+  percentage: number
+  color: string
+}
+
 function CategoryChart() {
-  const categories = [
+  const categories: Category[] = [
     { name: 'エレクトロニクス', percentage: 45, color: 'progress-primary' },
     { name: 'ファッション', percentage: 30, color: 'progress-success' },
     { name: 'ホーム&ガーデン', percentage: 15, color: 'progress-secondary' },

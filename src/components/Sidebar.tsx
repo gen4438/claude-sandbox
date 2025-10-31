@@ -1,7 +1,20 @@
 import { HomeIcon, ChartBarIcon, UsersIcon, Cog6ToothIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { ForwardRefExoticComponent, SVGProps } from 'react'
 
-function Sidebar({ isOpen, isMobile, onClose }) {
-  const menuItems = [
+interface SidebarProps {
+  isOpen: boolean
+  isMobile: boolean
+  onClose: () => void
+}
+
+interface MenuItem {
+  icon: ForwardRefExoticComponent<SVGProps<SVGSVGElement>>
+  label: string
+  active: boolean
+}
+
+function Sidebar({ isOpen, isMobile, onClose }: SidebarProps) {
+  const menuItems: MenuItem[] = [
     { icon: HomeIcon, label: 'ホーム', active: true },
     { icon: ChartBarIcon, label: '分析', active: false },
     { icon: UsersIcon, label: 'ユーザー', active: false },

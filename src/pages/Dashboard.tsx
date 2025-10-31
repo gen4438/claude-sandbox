@@ -1,11 +1,20 @@
 import { useState, useEffect } from 'react'
 import { UsersIcon, CurrencyDollarIcon, ShoppingBagIcon, EyeIcon } from '@heroicons/react/24/outline'
-import Header from './components/Header'
-import Sidebar from './components/Sidebar'
-import StatCard from './components/StatCard'
-import SalesChart from './components/SalesChart'
-import CategoryChart from './components/CategoryChart'
-import OrdersTable from './components/OrdersTable'
+import { ForwardRefExoticComponent, SVGProps } from 'react'
+import Header from '../components/Header'
+import Sidebar from '../components/Sidebar'
+import StatCard from '../components/StatCard'
+import SalesChart from '../components/SalesChart'
+import CategoryChart from '../components/CategoryChart'
+import OrdersTable from '../components/OrdersTable'
+
+interface Stat {
+  icon: ForwardRefExoticComponent<SVGProps<SVGSVGElement>>
+  title: string
+  value: string
+  change: string
+  colorClass: string
+}
 
 function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -25,7 +34,7 @@ function Dashboard() {
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
-  const stats = [
+  const stats: Stat[] = [
     {
       icon: UsersIcon,
       title: '総ユーザー数',

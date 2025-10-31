@@ -1,5 +1,14 @@
+interface Order {
+  id: string
+  customer: string
+  product: string
+  amount: string
+  status: string
+  statusColor: string
+}
+
 function OrdersTable() {
-  const orders = [
+  const orders: Order[] = [
     {
       id: '#1001',
       customer: '田中 太郎',

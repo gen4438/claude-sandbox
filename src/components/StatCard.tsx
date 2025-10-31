@@ -1,4 +1,14 @@
-function StatCard({ icon: Icon, title, value, change, colorClass = 'text-primary' }) {
+import { ForwardRefExoticComponent, SVGProps } from 'react'
+
+interface StatCardProps {
+  icon: ForwardRefExoticComponent<SVGProps<SVGSVGElement>>
+  title: string
+  value: string
+  change: string
+  colorClass?: string
+}
+
+function StatCard({ icon: Icon, title, value, change, colorClass = 'text-primary' }: StatCardProps) {
   const isPositive = change.startsWith('↑')
   const changeColorClass = isPositive ? 'text-success' : 'text-error'
 
