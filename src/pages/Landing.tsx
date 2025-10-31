@@ -1,25 +1,8 @@
 import { Link } from 'react-router-dom'
-import {
-  ChartBarIcon,
-  UsersIcon,
-  Cog6ToothIcon,
-  DocumentTextIcon,
-  CubeIcon,
-  ShoppingBagIcon,
-  QrCodeIcon
-} from '@heroicons/react/24/outline'
-import { ForwardRefExoticComponent, SVGProps } from 'react'
 import Header from '../components/Header'
 import Sidebar from '../components/Sidebar'
 import { useState, useEffect } from 'react'
-
-interface PageLink {
-  title: string
-  description: string
-  icon: ForwardRefExoticComponent<SVGProps<SVGSVGElement>>
-  path: string
-  color: string
-}
+import { getPages } from '../pageRegistry'
 
 function Landing() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -39,57 +22,8 @@ function Landing() {
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
-  const pages: PageLink[] = [
-    {
-      title: 'ダッシュボード',
-      description: '売上、ユーザー、注文などの統計情報を確認',
-      icon: ChartBarIcon,
-      path: '/dashboard',
-      color: 'text-primary',
-    },
-    {
-      title: 'QRコードジェネレーター',
-      description: 'テキストからQRコードを生成',
-      icon: QrCodeIcon,
-      path: '/qr-generator',
-      color: 'text-primary',
-    },
-    {
-      title: 'ユーザー管理',
-      description: 'ユーザーアカウントの管理と設定',
-      icon: UsersIcon,
-      path: '/users',
-      color: 'text-success',
-    },
-    {
-      title: '商品管理',
-      description: '商品の追加、編集、削除',
-      icon: ShoppingBagIcon,
-      path: '/products',
-      color: 'text-secondary',
-    },
-    {
-      title: '在庫管理',
-      description: '在庫状況の確認と管理',
-      icon: CubeIcon,
-      path: '/inventory',
-      color: 'text-warning',
-    },
-    {
-      title: 'レポート',
-      description: '詳細なレポートと分析',
-      icon: DocumentTextIcon,
-      path: '/reports',
-      color: 'text-info',
-    },
-    {
-      title: '設定',
-      description: 'システム設定とカスタマイズ',
-      icon: Cog6ToothIcon,
-      path: '/settings',
-      color: 'text-accent',
-    },
-  ]
+  // 自動的にページリストを取得
+  const pages = getPages()
 
   return (
     <div className="min-h-screen bg-base-200">
@@ -117,31 +51,39 @@ function Landing() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-              {pages.map((page, index) => {
-                const Icon = page.icon
-                return (
-                  <Link
-                    key={index}
-                    to={page.path}
-                    className="card bg-base-100 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1"
-                  >
-                    <div className="card-body">
-                      <div className={`${page.color} mb-2`}>
-                        <Icon className="w-10 h-10 sm:w-12 sm:h-12" />
+            {pages.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-lg opacity-70">
+                  ページがありません。src/pages/ にページファイルを追加してください。
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                {pages.map((page, index) => {
+                  const Icon = page.icon
+                  return (
+                    <Link
+                      key={index}
+                      to={page.path}
+                      className="card bg-base-100 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1"
+                    >
+                      <div className="card-body">
+                        <div className={`${page.color} mb-2`}>
+                          <Icon className="w-10 h-10 sm:w-12 sm:h-12" />
+                        </div>
+                        <h2 className="card-title text-lg sm:text-xl">{page.title}</h2>
+                        <p className="text-sm sm:text-base opacity-70">{page.description}</p>
+                        <div className="card-actions justify-end mt-2">
+                          <span className={`text-sm font-semibold ${page.color}`}>
+                            開く →
+                          </span>
+                        </div>
                       </div>
-                      <h2 className="card-title text-lg sm:text-xl">{page.title}</h2>
-                      <p className="text-sm sm:text-base opacity-70">{page.description}</p>
-                      <div className="card-actions justify-end mt-2">
-                        <span className={`text-sm font-semibold ${page.color}`}>
-                          開く →
-                        </span>
-                      </div>
-                    </div>
-                  </Link>
-                )
-              })}
-            </div>
+                    </Link>
+                  )
+                })}
+              </div>
+            )}
           </div>
         </main>
       </div>

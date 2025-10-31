@@ -3,6 +3,7 @@ import { QRCodeSVG } from 'qrcode.react'
 import Header from '../components/Header'
 import Sidebar from '../components/Sidebar'
 import { QrCodeIcon } from '@heroicons/react/24/outline'
+import { PageMetadata } from '../pageRegistry'
 
 function QRGenerator() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -205,6 +206,15 @@ function QRGenerator() {
       </div>
     </div>
   )
+}
+
+// ページメタデータのエクスポート
+export const metadata: PageMetadata = {
+  title: 'QRコードジェネレーター',
+  description: 'テキストからQRコードを生成',
+  icon: QrCodeIcon,
+  path: '/qr-generator',
+  color: 'text-primary',
 }
 
 export default QRGenerator
