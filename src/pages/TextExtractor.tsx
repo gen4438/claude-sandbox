@@ -50,7 +50,7 @@ function TextExtractor() {
   useEffect(() => {
     if (image && canvasRef.current) {
       const canvas = canvasRef.current
-      const ctx = canvas.getContext('2d')
+      const ctx = canvas.getContext('2d', { willReadFrequently: true })
       if (!ctx) return
 
       // Canvasサイズを画像に合わせる
@@ -230,9 +230,13 @@ function TextExtractor() {
       clientY = e.clientY
     }
 
+    // canvasの内部解像度と表示サイズの比率を計算
+    const scaleX = canvas.width / rect.width
+    const scaleY = canvas.height / rect.height
+
     return {
-      x: clientX - rect.left,
-      y: clientY - rect.top
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY
     }
   }
 
@@ -275,7 +279,7 @@ function TextExtractor() {
           return
         }
 
-        const ctx = canvas.getContext('2d')
+        const ctx = canvas.getContext('2d', { willReadFrequently: true })
         if (!ctx) {
           console.error('Context not found')
           setIsDetecting(false)
@@ -307,9 +311,9 @@ function TextExtractor() {
         const imageData = ctx.getImageData(Math.floor(minX), Math.floor(minY), width, height)
         const data = imageData.data
 
-        // グレースケール化とエッジ検出
+        // グレースケール化と二値化
         const grayData = new Uint8Array(width * height)
-        const edgeData = new Uint8Array(width * height)
+        const binaryData = new Uint8Array(width * height)
 
         // グレースケール化
         for (let i = 0; i < data.length; i += 4) {
@@ -320,27 +324,56 @@ function TextExtractor() {
 
         console.log('Grayscale conversion complete')
 
-        // Sobelフィルタでエッジ検出
-        for (let y = 1; y < height - 1; y++) {
-          for (let x = 1; x < width - 1; x++) {
-            const idx = y * width + x
+        // 大津の二値化（Otsu's method）でより良い閾値を自動決定
+        const histogram = new Array(256).fill(0)
+        for (let i = 0; i < grayData.length; i++) {
+          histogram[Math.floor(grayData[i])]++
+        }
 
-            // Sobelカーネル
-            const gx =
-              -1 * grayData[(y - 1) * width + (x - 1)] + 1 * grayData[(y - 1) * width + (x + 1)] +
-              -2 * grayData[y * width + (x - 1)] + 2 * grayData[y * width + (x + 1)] +
-              -1 * grayData[(y + 1) * width + (x - 1)] + 1 * grayData[(y + 1) * width + (x + 1)]
+        let sum = 0
+        for (let i = 0; i < 256; i++) {
+          sum += i * histogram[i]
+        }
 
-            const gy =
-              -1 * grayData[(y - 1) * width + (x - 1)] - 2 * grayData[(y - 1) * width + x] - 1 * grayData[(y - 1) * width + (x + 1)] +
-              1 * grayData[(y + 1) * width + (x - 1)] + 2 * grayData[(y + 1) * width + x] + 1 * grayData[(y + 1) * width + (x + 1)]
+        let sumB = 0
+        let wB = 0
+        let wF = 0
+        let maxVariance = 0
+        let threshold = 0
 
-            const magnitude = Math.sqrt(gx * gx + gy * gy)
-            edgeData[idx] = magnitude > 50 ? 255 : 0
+        for (let t = 0; t < 256; t++) {
+          wB += histogram[t]
+          if (wB === 0) continue
+
+          wF = grayData.length - wB
+          if (wF === 0) break
+
+          sumB += t * histogram[t]
+
+          const mB = sumB / wB
+          const mF = (sum - sumB) / wF
+
+          const variance = wB * wF * (mB - mF) * (mB - mF)
+
+          if (variance > maxVariance) {
+            maxVariance = variance
+            threshold = t
           }
         }
 
-        console.log('Edge detection complete')
+        console.log('Otsu threshold:', threshold)
+
+        // 二値化（文字が暗い場合と明るい場合の両方に対応）
+        const avgGray = grayData.reduce((a, b) => a + b, 0) / grayData.length
+        const darkText = avgGray > 128 // 背景が明るい = 文字が暗い
+
+        for (let i = 0; i < grayData.length; i++) {
+          binaryData[i] = darkText
+            ? (grayData[i] < threshold ? 255 : 0)
+            : (grayData[i] > threshold ? 255 : 0)
+        }
+
+        console.log('Binarization complete, dark text:', darkText)
 
         // 連結成分分析で文字領域を検出
         const visited = new Uint8Array(width * height)
@@ -356,7 +389,7 @@ function TextExtractor() {
             if (x < 0 || x >= width || y < 0 || y >= height) continue
 
             const idx = y * width + x
-            if (visited[idx] || edgeData[idx] === 0) continue
+            if (visited[idx] || binaryData[idx] === 0) continue
 
             visited[idx] = 1
             pixelCount++
@@ -371,68 +404,101 @@ function TextExtractor() {
             stack.push({ x, y: y - 1 })
           }
 
-          // 小さすぎる領域は無視
-          if (pixelCount < 20) return null
+          const regionWidth = maxRX - minRX + 1
+          const regionHeight = maxRY - minRY + 1
+          const regionArea = regionWidth * regionHeight
+
+          // フィルタリング条件を改善
+          // 1. 最小サイズ
+          if (pixelCount < 50) return null
+
+          // 2. アスペクト比（極端に細長い領域を除外）
+          const aspectRatio = Math.max(regionWidth, regionHeight) / Math.min(regionWidth, regionHeight)
+          if (aspectRatio > 10) return null
+
+          // 3. 密度（領域内のピクセル密度）
+          const density = pixelCount / regionArea
+          if (density < 0.1 || density > 0.95) return null
+
+          // 4. サイズ制限（選択範囲の大部分を占める領域は除外）
+          if (regionArea > (width * height * 0.8)) return null
 
           return {
             x: minX + minRX,
             y: minY + minRY,
-            width: maxRX - minRX,
-            height: maxRY - minRY
+            width: regionWidth,
+            height: regionHeight
           }
         }
 
         for (let y = 0; y < height; y++) {
           for (let x = 0; x < width; x++) {
             const idx = y * width + x
-            if (!visited[idx] && edgeData[idx] === 255) {
+            if (!visited[idx] && binaryData[idx] === 255) {
               const region = floodFill(x, y)
               if (region) regions.push(region)
             }
           }
         }
 
-        console.log('Found regions:', regions.length)
+        console.log('Found regions:', regions.length, regions)
 
-        // 近い領域を統合
+        // 近い領域を統合（文字列として連なる領域をグループ化）
         const mergedRegions: TextRegion[] = []
         const used = new Set<number>()
 
-        regions.forEach((region, i) => {
+        // 領域をY座標でソート（横書きの文字列を想定）
+        const sortedRegions = [...regions].sort((a, b) => a.y - b.y)
+
+        sortedRegions.forEach((region, i) => {
           if (used.has(i)) return
 
           let merged = { ...region }
           used.add(i)
 
-          regions.forEach((other, j) => {
-            if (i === j || used.has(j)) return
+          // 同じ行または近い行の領域を統合
+          let changed = true
+          while (changed) {
+            changed = false
+            sortedRegions.forEach((other, j) => {
+              if (i === j || used.has(j)) return
 
-            // 重なりまたは近接チェック
-            const distance = Math.sqrt(
-              Math.pow(merged.x + merged.width / 2 - (other.x + other.width / 2), 2) +
-              Math.pow(merged.y + merged.height / 2 - (other.y + other.height / 2), 2)
-            )
+              // 垂直方向の重なりまたは近接をチェック
+              const verticalOverlap = Math.min(merged.y + merged.height, other.y + other.height) -
+                                     Math.max(merged.y, other.y)
+              const avgHeight = (merged.height + other.height) / 2
 
-            if (distance < Math.max(merged.width, merged.height, other.width, other.height) * 1.5) {
-              const newMinX = Math.min(merged.x, other.x)
-              const newMinY = Math.min(merged.y, other.y)
-              const newMaxX = Math.max(merged.x + merged.width, other.x + other.width)
-              const newMaxY = Math.max(merged.y + merged.height, other.y + other.height)
+              // 水平方向の距離
+              const horizontalGap = Math.max(
+                merged.x - (other.x + other.width),
+                other.x - (merged.x + merged.width)
+              )
 
-              merged = {
-                x: newMinX,
-                y: newMinY,
-                width: newMaxX - newMinX,
-                height: newMaxY - newMinY
+              // 同じ行にあると判定する条件：
+              // 1. 垂直方向に重なりがある、または近い
+              // 2. 水平方向の間隔が平均高さの2倍以内
+              if (verticalOverlap > -avgHeight * 0.5 && horizontalGap < avgHeight * 2) {
+                const newMinX = Math.min(merged.x, other.x)
+                const newMinY = Math.min(merged.y, other.y)
+                const newMaxX = Math.max(merged.x + merged.width, other.x + other.width)
+                const newMaxY = Math.max(merged.y + merged.height, other.y + other.height)
+
+                merged = {
+                  x: newMinX,
+                  y: newMinY,
+                  width: newMaxX - newMinX,
+                  height: newMaxY - newMinY
+                }
+                used.add(j)
+                changed = true
               }
-              used.add(j)
-            }
-          })
+            })
+          }
 
           mergedRegions.push(merged)
         })
 
-        console.log('Merged regions:', mergedRegions.length)
+        console.log('Merged regions:', mergedRegions.length, mergedRegions)
 
         if (mergedRegions.length === 0) {
           alert('文字領域が検出できませんでした。別の範囲を選択するか、もっとはっきりした文字が写っている場所を選択してください。')
