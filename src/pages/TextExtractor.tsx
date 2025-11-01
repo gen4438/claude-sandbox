@@ -257,150 +257,195 @@ function TextExtractor() {
 
   // 文字領域を自動検出
   const detectTextRegions = () => {
-    if (!canvasRef.current || !image || points.length < 3) return
+    if (!canvasRef.current || !image || points.length < 3) {
+      console.log('Detection skipped:', { canvas: !!canvasRef.current, image: !!image, points: points.length })
+      return
+    }
 
+    console.log('Starting text detection...')
     setIsDetecting(true)
-    const canvas = canvasRef.current
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
 
-    // 選択範囲のバウンディングボックスを計算
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
-    points.forEach(p => {
-      minX = Math.min(minX, p.x)
-      minY = Math.min(minY, p.y)
-      maxX = Math.max(maxX, p.x)
-      maxY = Math.max(maxY, p.y)
-    })
-
-    const width = maxX - minX
-    const height = maxY - minY
-
-    // 選択範囲の画像データを取得
-    const imageData = ctx.getImageData(minX, minY, width, height)
-    const data = imageData.data
-
-    // グレースケール化とエッジ検出
-    const grayData = new Uint8Array(width * height)
-    const edgeData = new Uint8Array(width * height)
-
-    // グレースケール化
-    for (let i = 0; i < data.length; i += 4) {
-      const idx = i / 4
-      const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]
-      grayData[idx] = gray
-    }
-
-    // Sobelフィルタでエッジ検出
-    for (let y = 1; y < height - 1; y++) {
-      for (let x = 1; x < width - 1; x++) {
-        const idx = y * width + x
-
-        // Sobelカーネル
-        const gx =
-          -1 * grayData[(y - 1) * width + (x - 1)] + 1 * grayData[(y - 1) * width + (x + 1)] +
-          -2 * grayData[y * width + (x - 1)] + 2 * grayData[y * width + (x + 1)] +
-          -1 * grayData[(y + 1) * width + (x - 1)] + 1 * grayData[(y + 1) * width + (x + 1)]
-
-        const gy =
-          -1 * grayData[(y - 1) * width + (x - 1)] - 2 * grayData[(y - 1) * width + x] - 1 * grayData[(y - 1) * width + (x + 1)] +
-          1 * grayData[(y + 1) * width + (x - 1)] + 2 * grayData[(y + 1) * width + x] + 1 * grayData[(y + 1) * width + (x + 1)]
-
-        const magnitude = Math.sqrt(gx * gx + gy * gy)
-        edgeData[idx] = magnitude > 50 ? 255 : 0
-      }
-    }
-
-    // 連結成分分析で文字領域を検出
-    const visited = new Uint8Array(width * height)
-    const regions: TextRegion[] = []
-
-    const floodFill = (startX: number, startY: number): TextRegion | null => {
-      const stack: Point[] = [{ x: startX, y: startY }]
-      let minRX = startX, minRY = startY, maxRX = startX, maxRY = startY
-      let pixelCount = 0
-
-      while (stack.length > 0) {
-        const { x, y } = stack.pop()!
-        if (x < 0 || x >= width || y < 0 || y >= height) continue
-
-        const idx = y * width + x
-        if (visited[idx] || edgeData[idx] === 0) continue
-
-        visited[idx] = 1
-        pixelCount++
-        minRX = Math.min(minRX, x)
-        minRY = Math.min(minRY, y)
-        maxRX = Math.max(maxRX, x)
-        maxRY = Math.max(maxRY, y)
-
-        stack.push({ x: x + 1, y })
-        stack.push({ x: x - 1, y })
-        stack.push({ x, y: y + 1 })
-        stack.push({ x, y: y - 1 })
-      }
-
-      // 小さすぎる領域は無視
-      if (pixelCount < 20) return null
-
-      return {
-        x: minX + minRX,
-        y: minY + minRY,
-        width: maxRX - minRX,
-        height: maxRY - minRY
-      }
-    }
-
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        const idx = y * width + x
-        if (!visited[idx] && edgeData[idx] === 255) {
-          const region = floodFill(x, y)
-          if (region) regions.push(region)
+    // 重い処理を非同期化
+    setTimeout(() => {
+      try {
+        const canvas = canvasRef.current
+        if (!canvas) {
+          console.error('Canvas not found')
+          setIsDetecting(false)
+          return
         }
-      }
-    }
 
-    // 近い領域を統合
-    const mergedRegions: TextRegion[] = []
-    const used = new Set<number>()
+        const ctx = canvas.getContext('2d')
+        if (!ctx) {
+          console.error('Context not found')
+          setIsDetecting(false)
+          return
+        }
 
-    regions.forEach((region, i) => {
-      if (used.has(i)) return
+        // 選択範囲のバウンディングボックスを計算
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+        points.forEach(p => {
+          minX = Math.min(minX, p.x)
+          minY = Math.min(minY, p.y)
+          maxX = Math.max(maxX, p.x)
+          maxY = Math.max(maxY, p.y)
+        })
 
-      let merged = { ...region }
-      used.add(i)
+        const width = Math.floor(maxX - minX)
+        const height = Math.floor(maxY - minY)
 
-      regions.forEach((other, j) => {
-        if (i === j || used.has(j)) return
+        console.log('Selection area:', { minX, minY, width, height })
 
-        // 重なりまたは近接チェック
-        const distance = Math.sqrt(
-          Math.pow(merged.x + merged.width / 2 - (other.x + other.width / 2), 2) +
-          Math.pow(merged.y + merged.height / 2 - (other.y + other.height / 2), 2)
-        )
+        if (width <= 0 || height <= 0) {
+          console.error('Invalid dimensions:', { width, height })
+          alert('選択範囲が小さすぎます。もう少し大きな範囲を選択してください。')
+          setIsDetecting(false)
+          return
+        }
 
-        if (distance < Math.max(merged.width, merged.height, other.width, other.height) * 1.5) {
-          const newMinX = Math.min(merged.x, other.x)
-          const newMinY = Math.min(merged.y, other.y)
-          const newMaxX = Math.max(merged.x + merged.width, other.x + other.width)
-          const newMaxY = Math.max(merged.y + merged.height, other.y + other.height)
+        // 選択範囲の画像データを取得
+        const imageData = ctx.getImageData(Math.floor(minX), Math.floor(minY), width, height)
+        const data = imageData.data
 
-          merged = {
-            x: newMinX,
-            y: newMinY,
-            width: newMaxX - newMinX,
-            height: newMaxY - newMinY
+        // グレースケール化とエッジ検出
+        const grayData = new Uint8Array(width * height)
+        const edgeData = new Uint8Array(width * height)
+
+        // グレースケール化
+        for (let i = 0; i < data.length; i += 4) {
+          const idx = i / 4
+          const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]
+          grayData[idx] = gray
+        }
+
+        console.log('Grayscale conversion complete')
+
+        // Sobelフィルタでエッジ検出
+        for (let y = 1; y < height - 1; y++) {
+          for (let x = 1; x < width - 1; x++) {
+            const idx = y * width + x
+
+            // Sobelカーネル
+            const gx =
+              -1 * grayData[(y - 1) * width + (x - 1)] + 1 * grayData[(y - 1) * width + (x + 1)] +
+              -2 * grayData[y * width + (x - 1)] + 2 * grayData[y * width + (x + 1)] +
+              -1 * grayData[(y + 1) * width + (x - 1)] + 1 * grayData[(y + 1) * width + (x + 1)]
+
+            const gy =
+              -1 * grayData[(y - 1) * width + (x - 1)] - 2 * grayData[(y - 1) * width + x] - 1 * grayData[(y - 1) * width + (x + 1)] +
+              1 * grayData[(y + 1) * width + (x - 1)] + 2 * grayData[(y + 1) * width + x] + 1 * grayData[(y + 1) * width + (x + 1)]
+
+            const magnitude = Math.sqrt(gx * gx + gy * gy)
+            edgeData[idx] = magnitude > 50 ? 255 : 0
           }
-          used.add(j)
         }
-      })
 
-      mergedRegions.push(merged)
-    })
+        console.log('Edge detection complete')
 
-    setDetectedRegions(mergedRegions)
-    setIsDetecting(false)
+        // 連結成分分析で文字領域を検出
+        const visited = new Uint8Array(width * height)
+        const regions: TextRegion[] = []
+
+        const floodFill = (startX: number, startY: number): TextRegion | null => {
+          const stack: Point[] = [{ x: startX, y: startY }]
+          let minRX = startX, minRY = startY, maxRX = startX, maxRY = startY
+          let pixelCount = 0
+
+          while (stack.length > 0) {
+            const { x, y } = stack.pop()!
+            if (x < 0 || x >= width || y < 0 || y >= height) continue
+
+            const idx = y * width + x
+            if (visited[idx] || edgeData[idx] === 0) continue
+
+            visited[idx] = 1
+            pixelCount++
+            minRX = Math.min(minRX, x)
+            minRY = Math.min(minRY, y)
+            maxRX = Math.max(maxRX, x)
+            maxRY = Math.max(maxRY, y)
+
+            stack.push({ x: x + 1, y })
+            stack.push({ x: x - 1, y })
+            stack.push({ x, y: y + 1 })
+            stack.push({ x, y: y - 1 })
+          }
+
+          // 小さすぎる領域は無視
+          if (pixelCount < 20) return null
+
+          return {
+            x: minX + minRX,
+            y: minY + minRY,
+            width: maxRX - minRX,
+            height: maxRY - minRY
+          }
+        }
+
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
+            const idx = y * width + x
+            if (!visited[idx] && edgeData[idx] === 255) {
+              const region = floodFill(x, y)
+              if (region) regions.push(region)
+            }
+          }
+        }
+
+        console.log('Found regions:', regions.length)
+
+        // 近い領域を統合
+        const mergedRegions: TextRegion[] = []
+        const used = new Set<number>()
+
+        regions.forEach((region, i) => {
+          if (used.has(i)) return
+
+          let merged = { ...region }
+          used.add(i)
+
+          regions.forEach((other, j) => {
+            if (i === j || used.has(j)) return
+
+            // 重なりまたは近接チェック
+            const distance = Math.sqrt(
+              Math.pow(merged.x + merged.width / 2 - (other.x + other.width / 2), 2) +
+              Math.pow(merged.y + merged.height / 2 - (other.y + other.height / 2), 2)
+            )
+
+            if (distance < Math.max(merged.width, merged.height, other.width, other.height) * 1.5) {
+              const newMinX = Math.min(merged.x, other.x)
+              const newMinY = Math.min(merged.y, other.y)
+              const newMaxX = Math.max(merged.x + merged.width, other.x + other.width)
+              const newMaxY = Math.max(merged.y + merged.height, other.y + other.height)
+
+              merged = {
+                x: newMinX,
+                y: newMinY,
+                width: newMaxX - newMinX,
+                height: newMaxY - newMinY
+              }
+              used.add(j)
+            }
+          })
+
+          mergedRegions.push(merged)
+        })
+
+        console.log('Merged regions:', mergedRegions.length)
+
+        if (mergedRegions.length === 0) {
+          alert('文字領域が検出できませんでした。別の範囲を選択するか、もっとはっきりした文字が写っている場所を選択してください。')
+        }
+
+        setDetectedRegions(mergedRegions)
+        setIsDetecting(false)
+      } catch (error) {
+        console.error('Error during text detection:', error)
+        alert('文字検出中にエラーが発生しました: ' + (error as Error).message)
+        setIsDetecting(false)
+      }
+    }, 100)
   }
 
   const extractText = () => {
