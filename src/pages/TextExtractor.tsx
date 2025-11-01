@@ -117,21 +117,43 @@ function TextExtractor() {
     }
   }, [points, isDrawing, image, detectedRegions])
 
+  // streamが変更されたらvideoに接続
+  useEffect(() => {
+    if (stream && videoRef.current) {
+      console.log('Setting video stream...')
+      videoRef.current.srcObject = stream
+
+      // loadedmetadataイベントを待ってから再生
+      videoRef.current.onloadedmetadata = () => {
+        console.log('Video metadata loaded, playing...')
+        videoRef.current?.play().catch(err => {
+          console.error('Video play error:', err)
+        })
+      }
+    }
+  }, [stream])
+
   // カメラを起動
   const startCamera = async () => {
+    console.log('Starting camera...')
     try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: isMobile ? 'environment' : 'user' }
-      })
+      const constraints = {
+        video: {
+          facingMode: isMobile ? 'environment' : 'user',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      }
+      console.log('Camera constraints:', constraints)
+
+      const mediaStream = await navigator.mediaDevices.getUserMedia(constraints)
+      console.log('Camera stream obtained:', mediaStream.getTracks())
+
       setStream(mediaStream)
       setIsCameraMode(true)
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream
-      }
     } catch (error) {
       console.error('カメラの起動に失敗しました:', error)
-      alert('カメラにアクセスできませんでした。カメラの使用を許可してください。')
+      alert(`カメラにアクセスできませんでした: ${error.message}\n\nブラウザの設定でカメラの使用を許可してください。`)
     }
   }
 
@@ -146,9 +168,25 @@ function TextExtractor() {
 
   // 写真を撮影
   const capturePhoto = () => {
-    if (!videoRef.current) return
-
     const video = videoRef.current
+    if (!video) {
+      console.error('Video element not found')
+      return
+    }
+
+    // videoの準備ができているか確認
+    if (video.readyState !== video.HAVE_ENOUGH_DATA) {
+      console.error('Video not ready', video.readyState)
+      alert('カメラの準備ができていません。少しお待ちください。')
+      return
+    }
+
+    if (video.videoWidth === 0 || video.videoHeight === 0) {
+      console.error('Invalid video dimensions')
+      alert('カメラの映像を取得できませんでした。')
+      return
+    }
+
     const canvas = document.createElement('canvas')
     canvas.width = video.videoWidth
     canvas.height = video.videoHeight
@@ -566,14 +604,22 @@ function TextExtractor() {
                       ref={videoRef}
                       autoPlay
                       playsInline
+                      muted
                       className="max-w-full rounded"
-                      style={{ maxHeight: '500px' }}
+                      style={{ maxHeight: '500px', minHeight: '200px', backgroundColor: '#000' }}
                     />
                   </div>
+
+                  {stream && (
+                    <div className="text-xs text-success mt-2 text-center">
+                      ✓ カメラが起動しました
+                    </div>
+                  )}
 
                   <button
                     className="btn btn-primary btn-lg mt-4"
                     onClick={capturePhoto}
+                    disabled={!stream}
                   >
                     <CameraIcon className="w-6 h-6" />
                     撮影
